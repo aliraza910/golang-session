@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real-Time Internet Speedometer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at top, #1e293b, #0f172a 60%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 980px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .title {
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #cbd5e1;
+            margin-top: 6px;
+            font-size: 14px;
+        }
+
+        .btn {
+            border: none;
+            background: #22c55e;
+            color: white;
+            padding: 14px 22px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 24px;
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .status {
+            font-size: 15px;
+            color: #e2e8f0;
+            margin-bottom: 18px;
+            min-height: 22px;
+        }
+
+        .gauge-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0 20px;
+        }
+
+        .gauge {
+            position: relative;
+            width: 360px;
+            height: 360px;
+            border-radius: 50%;
+            background:
+                    conic-gradient(
+                            #22c55e 0deg,
+                            #38bdf8 120deg,
+                            #a855f7 220deg,
+                            #f43f5e 300deg,
+                            #334155 300deg 360deg
+                    );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gauge::before {
+            content: "";
+            position: absolute;
+            width: 270px;
+            height: 270px;
+            border-radius: 50%;
+            background: #0f172a;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.35);
+        }
+
+        .needle {
+            position: absolute;
+            width: 150px;
+            height: 4px;
+            background: white;
+            transform-origin: 20px center;
+            transform: rotate(-130deg);
+            left: 50%;
+            top: 50%;
+            margin-left: -20px;
+            margin-top: -2px;
+            border-radius: 999px;
+            transition: transform 0.12s linear;
+            z-index: 5;
+        }
+
+        .needle::after {
+            content: "";
+            position: absolute;
+            right: -6px;
+            top: -4px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .needle-center {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            z-index: 6;
+        }
+
+        .gauge-content {
+            position: absolute;
+            z-index: 7;
+            text-align: center;
+            width: 220px;
+        }
+
+        .phase {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .speed {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .unit {
+            margin-top: 8px;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        .cards {
+            display: grid;
+            gap: 16px;
+        }
+
+        .metric {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .metric-label {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .gauge {
+                width: 300px;
+                height: 300px;
+            }
+
+            .gauge::before {
+                width: 225px;
+                height: 225px;
+            }
+
+            .needle {
+                width: 120px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .gauge {
+                width: 260px;
+                height: 260px;
+            }
+
+            .gauge::before {
+                width: 195px;
+                height: 195px;
+            }
+
+            .speed {
+                font-size: 38px;
+            }
+
+            .needle {
+                width: 105px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="top">
+        <div>
+            <div class="title">Internet Speedometer</div>
+            <div class="subtitle">Live real-time speed test with Go + SSE</div>
+        </div>
+        <button class="btn" id="startBtn">Start Test</button>
+    </div>
+
+    <div class="layout">
+        <div class="panel">
+            <div class="status" id="status">Ready to start.</div>
+
+            <div class="gauge-wrap">
+                <div class="gauge">
+                    <div class="needle" id="needle"></div>
+                    <div class="needle-center"></div>
+
+                    <div class="gauge-content">
+                        <div class="phase" id="phase">IDLE</div>
+                        <div class="speed" id="speedValue">0.00</div>
+                        <div class="unit">Mbps</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="cards">
+                <div class="metric">
+                    <div class="metric-label">Ping</div>
+                    <div class="metric-value" id="ping">-- ms</div>
+                </div>
+
+                <div class="metric">
+                    <div class="metric-label">Final Download</div>
+                    <div class="metric-value" id="finalDown">-- Mbps</div>
+                </div>
+
+                <div class="metric">
+                    <div class="metric-label">Final Upload</div>
+                    <div class="metric-value" id="finalUp">-- Mbps</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const startBtn = document.getElementById("startBtn");
+    const statusEl = document.getElementById("status");
+    const phaseEl = document.getElementById("phase");
+    const speedValueEl = document.getElementById("speedValue");
+    const needleEl = document.getElementById("needle");
+    const pingEl = document.getElementById("ping");
+    const finalDownEl = document.getElementById("finalDown");
+    const finalUpEl = document.getElementById("finalUp");
+
+    let currentGaugeMax = 150;
+
+    function setGauge(value, max = 150) {
+        currentGaugeMax = max;
+        const clamped = Math.max(0, Math.min(value, max));
+
+        speedValueEl.textContent = clamped.toFixed(2);
+
+        // Map 0..max to -130deg..130deg
+        const angle = -130 + (clamped / max) * 260;
+        needleEl.style.transform = `rotate(${angle}deg)`;
+    }
+
+    function resetUI() {
+        phaseEl.textContent = "IDLE";
+        statusEl.textContent = "Ready to start.";
+        pingEl.textContent = "-- ms";
+        finalDownEl.textContent = "-- Mbps";
+        finalUpEl.textContent = "-- Mbps";
+        setGauge(0, 150);
+    }
+
+    function startSpeedTest() {
+        resetUI();
+        startBtn.disabled = true;
+
+        const es = new EventSource("/api/speedtest/stream");
+
+        es.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.type === "status") {
+                    statusEl.textContent = data.message || "";
+                }
+
+                if (data.type === "ping") {
+                    phaseEl.textContent = "PING";
+                    pingEl.textContent = `${Number(data.ping).toFixed(2)} ms`;
+                    setGauge(0, 150);
+                }
+
+                if (data.type === "download") {
+                    phaseEl.textContent = "DOWNLOAD";
+                    statusEl.textContent = data.message || "Testing download...";
+                    setGauge(data.value || 0, data.max || 150);
+                }
+
+                if (data.type === "upload") {
+                    phaseEl.textContent = "UPLOAD";
+                    statusEl.textContent = data.message || "Testing upload...";
+                    setGauge(data.value || 0, data.max || 50);
+                }
+
+                if (data.type === "done") {
+                    phaseEl.textContent = "DONE";
+                    statusEl.textContent = data.message || "Completed";
+                    pingEl.textContent = `${Number(data.ping).toFixed(2)} ms`;
+                    finalDownEl.textContent = `${Number(data.final_down).toFixed(2)} Mbps`;
+                    finalUpEl.textContent = `${Number(data.final_up).toFixed(2)} Mbps`;
+                    startBtn.disabled = false;
+                    es.close();
+                }
+
+                if (data.type === "error") {
+                    statusEl.textContent = data.message || "Test failed";
+                    startBtn.disabled = false;
+                    es.close();
+                }
+            } catch (err) {
+                statusEl.textContent = "Failed to parse stream data";
+                startBtn.disabled = false;
+                es.close();
+            }
+        };
+
+        es.onerror = () => {
+            statusEl.textContent = "Connection lost or stream ended.";
+            startBtn.disabled = false;
+            es.close();
+        };
+    }
+
+    startBtn.addEventListener("click", startSpeedTest);
+</script>
+</body>
+</html>
